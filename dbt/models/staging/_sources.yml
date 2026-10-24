@@ -16,3 +16,7 @@ sources:
         description: HR roster. `email` and `name` are personal data and must never appear in chat or email.
       - name: ai_budgets
         description: Monthly AI budget per department.
+      - name: anthropic_workspaces
+        description: Which department owns each Anthropic API workspace. A workspace with no department has no owner yet.
+      - name: departments
+        description: Finance's list of departments, one row per cost centre, with the plant each sits at.

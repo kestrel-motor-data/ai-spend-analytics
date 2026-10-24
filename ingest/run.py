@@ -1,7 +1,7 @@
 """Load landed files into raw for a date range.
 
-    python -m ingest.run --start 2026-10-11 --end 2026-10-11
-    python -m ingest.run --start 2026-10-11 --end 2026-10-11 --source azure_openai
+    python -m ingest.run --start 2027-03-21 --end 2027-03-21
+    python -m ingest.run --start 2027-03-21 --end 2027-03-21 --source azure_openai
 """
 
 import argparse
