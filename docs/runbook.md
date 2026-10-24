@@ -88,7 +88,7 @@ calls only. Never put a token in code, a commit, a pull request, a ticket or a c
 1. Reply in **Data Alerts** that you're looking, within 15 minutes.
 2. Read the failed run's log and the landed file, and name the cause.
 3. Fix it in a pull request, with a test that would have caught it.
-4. Open a `DATA` ticket with cause, impact (which days, which tool, which
+4. Open a `DATA14D` ticket with cause, impact (which days, which tool, which
    report tables) and the fix.
 5. Tell your manager. If report figures are behind or wrong, say so in
    **AI Spend Report**.
