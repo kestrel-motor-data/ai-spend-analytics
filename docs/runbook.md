@@ -40,7 +40,7 @@ Models are rebuilt in full on every run, so reloading one day changes only that 
 Only reviewed code on `main` can load. Start a run from the Actions tab, or:
 
 ```
-gh workflow run nightly.yml -f start_date=2026-10-11 -f end_date=2026-10-11
+gh workflow run nightly.yml -f start_date=2027-03-21 -f end_date=2027-03-21
 gh workflow run nightly.yml -f skip_ingest=true      # rebuild models only
 ```
 
