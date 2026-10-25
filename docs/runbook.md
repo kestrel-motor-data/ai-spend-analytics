@@ -69,7 +69,7 @@ month, like Microsoft 365 Copilot.
 ## Credentials
 
 Vendor API tokens live in the `production` environment's secrets as
-`<SOURCE>_API_TOKEN`, for example `GITHUB_COPILOT_API_TOKEN`, and reach code as
+`<SOURCE>_API_TOKEN`, for example `COPILOT_API_TOKEN`, and reach code as
 environment variables. A token you're given to explore an API is for your own
 calls only. Never put a token in code, a commit, a pull request, a ticket or a chat.
 
