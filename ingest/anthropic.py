@@ -1,15 +1,20 @@
-"""Anthropic API usage and cost, from the Usage and Cost Admin API.
+"""Anthropic API usage, from Kestrel's Anthropic usage API.
 
-Usage and cost are two separate endpoints. We load the cost endpoint's daily
-totals by workspace as spend, and the usage endpoint's daily totals by
-workspace as a token count. Both are queried for a single UTC day at a time
-(bucket_width=1d, starting_at/ending_at one day apart), so each call returns
-at most one time bucket; `limit=1` keeps that explicit. Responses paginate
-within a bucket via `next_page`/`has_more`, same shape as the vendor's other
-list endpoints.
+Kestrel's Anthropic proxy only serves a usage report (token counts per day,
+per workspace, per model) - there is no cost endpoint (the vendor's own
+Cost Report API 404s on this host; confirmed against
+https://kestrel-anthropic-api.paddoxtechnologies.com/docs, which Kestrel pays
+list price and expects cost worked out from token counts). So this ingest
+only pulls usage_report/messages and lands raw token counts; cost is computed
+downstream from the published per-model price table (staging model, part B),
+not in the ingest step.
+
+Queried a single UTC day at a time (bucket_width=1d, starting_at/ending_at one
+day apart), grouped by workspace_id and model (the only two group_by values
+this API accepts). Responses paginate via next_page/has_more.
 
 Requires an Admin API key (org:admin scope) in ANTHROPIC_API_TOKEN - a normal
-API key cannot call these endpoints.
+API key cannot call this endpoint.
 """
 
 import datetime as dt
@@ -54,29 +59,15 @@ def _get_all(path: str, params: dict) -> list[dict]:
         page = body["next_page"]
 
 
-def _flatten_cost(row: dict, day: dt.date) -> dict:
-    return {
-        "day": day.isoformat(),
-        "workspace_id": row.get("workspace_id"),
-        "description": row.get("description"),
-        "cost_type": row.get("cost_type"),
-        "model": row.get("model"),
-        "service_tier": row.get("service_tier"),
-        "amount_usd": row.get("amount"),
-        "currency": row.get("currency"),
-    }
-
-
 def _flatten_usage(row: dict, day: dt.date) -> dict:
     cache_creation = row.get("cache_creation") or {}
     return {
         "day": day.isoformat(),
         "workspace_id": row.get("workspace_id"),
-        "api_key_id": row.get("api_key_id"),
         "model": row.get("model"),
-        "service_tier": row.get("service_tier"),
         "uncached_input_tokens": row.get("uncached_input_tokens", 0),
         "cache_read_input_tokens": row.get("cache_read_input_tokens", 0),
+        # Kestrel's docs: all cache writes are 5-minute writes (1h is unused).
         "cache_creation_1h_input_tokens": cache_creation.get("ephemeral_1h_input_tokens", 0),
         "cache_creation_5m_input_tokens": cache_creation.get("ephemeral_5m_input_tokens", 0),
         "output_tokens": row.get("output_tokens", 0),
@@ -87,18 +78,6 @@ def load(day: dt.date) -> None:
     starting_at = f"{day.isoformat()}T00:00:00Z"
     ending_at = f"{(day + dt.timedelta(days=1)).isoformat()}T00:00:00Z"
 
-    cost_rows = _get_all(
-        "/v1/organizations/cost_report",
-        {
-            "starting_at": starting_at,
-            "ending_at": ending_at,
-            "bucket_width": "1d",
-            "limit": 1,
-            "group_by[]": ["workspace_id", "description"],
-        },
-    )
-    replace_day("anthropic_cost", "day", day, [_flatten_cost(r, day) for r in cost_rows])
-
     usage_rows = _get_all(
         "/v1/organizations/usage_report/messages",
         {
@@ -106,7 +85,7 @@ def load(day: dt.date) -> None:
             "ending_at": ending_at,
             "bucket_width": "1d",
             "limit": 1,
-            "group_by[]": ["workspace_id", "api_key_id", "model", "service_tier"],
+            "group_by[]": ["workspace_id", "model"],
         },
     )
     replace_day("anthropic_usage", "day", day, [_flatten_usage(r, day) for r in usage_rows])
