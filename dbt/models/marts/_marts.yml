@@ -1,1 +1,51 @@
-PLACEHOLDER
+version: 2
+
+models:
+  - name: dim_department
+    description: Every department spend can be assigned to, plus 'Unallocated'.
+    columns:
+      - name: department
+        description: Department name.
+        tests: [not_null, unique]
+  - name: fct_ai_spend_daily
+    description: AI spend per day, department, tool and model. Read by the AI Spend report.
+    columns:
+      - name: date
+        description: Usage day, US Central.
+        tests: [not_null]
+      - name: department
+        description: Owning department, or 'Unallocated' when the user or key has no match in HR.
+        tests:
+          - not_null
+          - relationships: {to: ref('dim_department'), field: department}
+      - name: tool
+        description: AI product.
+        tests:
+          - accepted_values: {values: ['Azure OpenAI', 'Microsoft 365 Copilot', 'GitHub Copilot']}
+      - name: model
+        description: Model deployment, where the tool reports one.
+      - name: cost
+        description: Spend in US dollars. Seat licences are spread evenly over the days of the month.
+        tests: [not_null]
+      - name: tokens
+        description: Input plus output tokens, where the tool reports them.
+      - name: active_users
+        description: People who used the tool that day, where the tool reports users.
+  - name: rpt_ai_spend_monthly
+    description: Monthly spend per department and tool against budget. Read by leadership.
+    columns:
+      - name: month
+        description: First day of the month.
+        tests: [not_null]
+      - name: department
+        description: Department, or 'Unallocated'.
+        tests: [not_null]
+      - name: tool
+        description: AI product.
+        tests: [not_null]
+      - name: cost
+        description: Spend in US dollars at full precision; round to the cent when presenting.
+      - name: budget
+        description: The department's monthly AI budget, repeated on each tool row. Do not sum.
+      - name: variance
+        description: Department budget minus department spend across all tools, repeated on each tool row. Do not sum.
