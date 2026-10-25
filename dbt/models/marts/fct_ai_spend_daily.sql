@@ -92,6 +92,20 @@ github as (
     coalesce(a.active_users, 0) as active_users
   from github_seats s
   left join github_active a using (date, department)
+),
+
+anthropic as (
+  select
+    u.day as date,
+    coalesce(w.department, 'Unallocated') as department,
+    'Anthropic' as tool,
+    u.model,
+    sum(u.cost_usd) as cost,
+    sum(u.total_tokens) as tokens,
+    cast(null as int64) as active_users
+  from {{ ref('stg_anthropic_usage') }} u
+  left join {{ ref('stg_anthropic_workspaces') }} w using (workspace_id)
+  group by 1, 2, 3, 4
 )
 
 select * from azure
@@ -99,3 +113,5 @@ union all
 select * from m365
 union all
 select * from github
+union all
+select * from anthropic

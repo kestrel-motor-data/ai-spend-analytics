@@ -22,5 +22,7 @@ sources:
         description: GitHub Copilot seat snapshot from the Kestrel Copilot usage API, one row per day and assigned seat.
       - name: anthropic_workspaces
         description: Which department owns each Anthropic API workspace. A workspace with no department has no owner yet.
+      - name: anthropic_usage
+        description: Anthropic API usage from Kestrel's proxy, one row per day, workspace and model. No cost field; cost is computed in staging from token counts.
       - name: departments
         description: Finance's list of departments, one row per cost centre, with the plant each sits at.

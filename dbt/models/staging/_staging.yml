@@ -116,3 +116,47 @@ models:
         description: Day the seat was created; used to exclude days before the seat existed.
       - name: monthly_cost_usd
         description: Seat price per month, US dollars.
+  - name: stg_anthropic_usage
+    description: >
+      Cleaned Anthropic API usage, one row per day, workspace and model, with
+      cost computed from token counts against Kestrel's published price
+      table (the proxy has no cost endpoint). Cache writes are billed at the
+      5-minute rate; the proxy's docs say all cache writes are 5-minute writes
+      today, but the 1-hour cache column is summed in at the same rate in case
+      that changes.
+    columns:
+      - name: day
+        description: Usage day, US Central.
+        tests: [not_null]
+      - name: workspace_id
+        description: Anthropic workspace id; matched to department via stg_anthropic_workspaces.
+        tests: [not_null]
+      - name: model
+        description: Claude model used.
+        tests:
+          - accepted_values: {values: ['claude-sonnet-4-5', 'claude-haiku-4-5', 'claude-opus-4-1']}
+      - name: uncached_input_tokens
+        description: Input tokens not served from cache.
+      - name: cache_read_input_tokens
+        description: Input tokens served from cache.
+      - name: cache_creation_5m_input_tokens
+        description: Input tokens written to the 5-minute cache.
+      - name: cache_creation_1h_input_tokens
+        description: Input tokens written to the 1-hour cache. Always 0 today; Kestrel's proxy only offers 5-minute cache writes.
+      - name: output_tokens
+        description: Output tokens generated.
+      - name: total_tokens
+        description: Sum of all token fields above.
+      - name: cost_usd
+        description: Spend in US dollars, computed from tokens at Kestrel's published per-model price table.
+        tests: [not_null]
+  - name: stg_anthropic_workspaces
+    description: Which department owns each Anthropic API workspace.
+    columns:
+      - name: workspace_id
+        description: Anthropic workspace id.
+        tests: [not_null, unique]
+      - name: workspace_name
+        description: Workspace name.
+      - name: department
+        description: Owning department. Null when the workspace has no owner yet.
