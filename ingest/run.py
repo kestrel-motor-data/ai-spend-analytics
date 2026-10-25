@@ -7,12 +7,13 @@
 import argparse
 import datetime as dt
 
-from ingest import azure_openai, m365_copilot
+from ingest import azure_openai, github_copilot, m365_copilot
 from ingest.common import days
 
 SOURCES = {
     "azure_openai": azure_openai.load,
     "m365_copilot": m365_copilot.load,
+    "github_copilot": github_copilot.load,
 }
 
 
@@ -26,7 +27,3 @@ def main() -> None:
     for name in args.source.split(","):
         for day in days(args.start, args.end):
             SOURCES[name](day)
-
-
-if __name__ == "__main__":
-    main()
