@@ -23,6 +23,11 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m compileall -q ingest alerts
+      - name: Unit tests
+        env:
+          GCP_PROJECT: ci
+          LANDING_BUCKET: ci
+        run: python -m unittest discover -s ingest -p 'test_*.py'
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CI_KEY }}
