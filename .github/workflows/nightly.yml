@@ -12,6 +12,9 @@ on:
       end_date:
         description: Last day to load. Empty means the same as start_date.
         required: false
+      source:
+        description: Comma-separated sources to load, e.g. anthropic. Empty means all sources.
+        required: false
       skip_ingest:
         description: Only rebuild the models from what is already in raw.
         type: boolean
@@ -48,7 +51,12 @@ jobs:
           echo "END=${END_DATE:-$start}" >> "$GITHUB_ENV"
       - name: Load landed files
         if: ${{ !inputs.skip_ingest }}
-        run: python -m ingest.run --start "$START" --end "$END"
+        run: |
+          if [ -n "${{ inputs.source }}" ]; then
+            python -m ingest.run --start "$START" --end "$END" --source "${{ inputs.source }}"
+          else
+            python -m ingest.run --start "$START" --end "$END"
+          fi
       - name: Build models
         working-directory: dbt
         run: dbt build --profiles-dir .
