@@ -22,7 +22,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python -m compileall -q ingest
+      - run: python -m compileall -q ingest alerts
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CI_KEY }}

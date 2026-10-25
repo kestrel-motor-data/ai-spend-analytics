@@ -78,6 +78,19 @@ under department `Unallocated`, never dropped. Say how many in the pull request.
 **Seat licences** cost their monthly price spread evenly over the days of the
 month, like Microsoft 365 Copilot.
 
+## Budget alerts
+
+`marts.rpt_ai_spend_monthly` carries each department's monthly budget
+(from `raw.ai_budgets`) and variance alongside its spend. After the nightly
+model build, `alerts/budget_alerts.py` checks every department against the
+current month: once a department's month-to-date spend reaches 90% of its
+budget, it posts one message to **AI Spend Report** naming the department
+and the percentage. A row in `reporting.budget_alerts_sent` (month,
+department) records that the alert went out, so a department is never
+alerted twice in the same month even though the mart rebuilds in full every
+night. The webhook URL lives in the `production` environment's secrets as
+`SLACK_REPORT_WEBHOOK`.
+
 ## Credentials
 
 Vendor API tokens live in the `production` environment's secrets as

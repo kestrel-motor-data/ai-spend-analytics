@@ -4,8 +4,6 @@
 name: nightly
 
 on:
-  # The 02:00 US Central schedule ("0 7 * * *") is switched on once the sandbox
-  # lands files by itself at 01:30; until then `sandbox run-nightly` starts it.
   workflow_dispatch:
     inputs:
       start_date:
@@ -53,6 +51,13 @@ jobs:
       - name: Build models
         working-directory: dbt
         run: dbt build --profiles-dir .
+      - name: Check budget alerts
+        if: success()
+        env:
+          SLACK_REPORT_WEBHOOK: ${{ secrets.SLACK_REPORT_WEBHOOK }}
+        run: |
+          month="${END%-*}-01"
+          python -m alerts.budget_alerts --month "$month"
       - name: Email the data engineer
         if: failure() && vars.ALERT_EMAIL != ''
         env:
