@@ -59,6 +59,18 @@ Then check the totals for the reloaded days in `marts.fct_ai_spend_daily`.
    for `ci.yml` to pass.
 6. After the merge, load the history with `nightly.yml` and check the report tables.
 
+**Brand-new sources.** `ci.yml` only runs `dbt build` against the real `raw`
+dataset; it never runs ingest. For a source that has never loaded before,
+`raw.<source>_usage` (and any other raw table it needs) does not exist yet, so
+the staging models in step 3 cannot build and `ci.yml` will fail on "table not
+found" even though the code is correct. Split the work into two pull requests
+instead of one: PR A with just `ingest/<source>.py`, the `ingest/run.py`
+registration, and the `nightly.yml` env entry for the vendor's token; once that
+merges, trigger `nightly.yml` to load a day of history so the raw table
+exists; then open PR B with the staging models, the `fct_ai_spend_daily`
+and `tool` accepted-values changes, which can now build in CI against the
+real raw table.
+
 **Unmatched people.** Usage that can't be matched to someone in
 `raw.hr_employees` (a GitHub login, a key or a user with no HR record) is kept
 under department `Unallocated`, never dropped. Say how many in the pull request.
