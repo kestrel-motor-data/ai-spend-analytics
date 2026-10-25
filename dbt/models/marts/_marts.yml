@@ -21,7 +21,7 @@ models:
       - name: tool
         description: AI product.
         tests:
-          - accepted_values: {values: ['Azure OpenAI', 'Microsoft 365 Copilot']}
+          - accepted_values: {values: ['Azure OpenAI', 'Microsoft 365 Copilot', 'GitHub Copilot']}
       - name: model
         description: Model deployment, where the tool reports one.
       - name: cost

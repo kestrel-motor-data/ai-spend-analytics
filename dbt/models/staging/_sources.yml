@@ -16,6 +16,10 @@ sources:
         description: HR roster. `email` and `name` are personal data and must never appear in chat or email.
       - name: ai_budgets
         description: Monthly AI budget per department.
+      - name: github_copilot_usage
+        description: GitHub Copilot usage from the Kestrel Copilot usage API, one row per day and user.
+      - name: github_copilot_seats
+        description: GitHub Copilot seat snapshot from the Kestrel Copilot usage API, one row per day and assigned seat.
       - name: anthropic_workspaces
         description: Which department owns each Anthropic API workspace. A workspace with no department has no owner yet.
       - name: departments

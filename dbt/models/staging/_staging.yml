@@ -78,3 +78,41 @@ models:
         description: First day of the month.
       - name: budget
         description: Budget in US dollars.
+  - name: stg_github_copilot_usage
+    description: Cleaned GitHub Copilot usage, one row per day and GitHub login.
+    columns:
+      - name: day
+        description: Usage day, US Central.
+        tests: [not_null]
+      - name: github_login
+        description: GitHub login; matched to department via stg_hr_employees.github_login.
+        tests: [not_null]
+      - name: editor
+        description: Editor the suggestions were made in.
+      - name: suggestions_count
+        description: Suggestions shown that day.
+      - name: acceptances_count
+        description: Suggestions accepted that day.
+      - name: lines_accepted
+        description: Lines of accepted suggestions.
+      - name: chat_turns
+        description: Copilot Chat turns that day.
+  - name: stg_github_copilot_seats
+    description: >
+      GitHub Copilot seat snapshot, one row per day the load ran and per
+      seat assigned at that time. The vendor API has no removal date or
+      history endpoint, so a seat simply stops appearing once revoked;
+      backfilled days only see seats held as of today's snapshot.
+    columns:
+      - name: day
+        description: The day this snapshot was taken, US Central.
+        tests: [not_null]
+      - name: github_login
+        description: GitHub login holding the seat; matched to department via stg_hr_employees.github_login.
+        tests: [not_null]
+      - name: plan_type
+        description: Copilot plan type, e.g. business.
+      - name: created_at
+        description: Day the seat was created; used to exclude days before the seat existed.
+      - name: monthly_cost_usd
+        description: Seat price per month, US dollars.

@@ -53,8 +53,49 @@ m365 as (
     coalesce(a.active_users, 0) as active_users
   from m365_seats s
   left join m365_active a using (date, department)
+),
+
+-- A seat costs its monthly price spread evenly over the days of the month,
+-- same as Microsoft 365 Copilot. The vendor snapshot only shows seats held
+-- as of the day it was taken, so there is no assigned/removed window to join;
+-- a backfilled day only sees who holds a seat as of today, not back then.
+github_seats as (
+  select
+    s.day as date,
+    coalesce(e.department, 'Unallocated') as department,
+    sum(s.monthly_cost_usd / extract(day from last_day(s.day))) as cost
+  from {{ ref('stg_github_copilot_seats') }} s
+  left join {{ ref('stg_hr_employees') }} e on e.github_login = s.github_login
+  group by 1, 2
+),
+
+github_active as (
+  select
+    u.day as date,
+    coalesce(e.department, 'Unallocated') as department,
+    count(distinct u.github_login) as active_users,
+    sum(u.suggestions_count) as tokens
+  from {{ ref('stg_github_copilot_usage') }} u
+  left join {{ ref('stg_hr_employees') }} e on e.github_login = u.github_login
+  where u.suggestions_count > 0 or u.chat_turns > 0
+  group by 1, 2
+),
+
+github as (
+  select
+    s.date,
+    s.department,
+    'GitHub Copilot' as tool,
+    cast(null as string) as model,
+    s.cost,
+    a.tokens,
+    coalesce(a.active_users, 0) as active_users
+  from github_seats s
+  left join github_active a using (date, department)
 )
 
 select * from azure
 union all
 select * from m365
+union all
+select * from github
