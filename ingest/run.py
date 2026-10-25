@@ -7,13 +7,14 @@
 import argparse
 import datetime as dt
 
-from ingest import azure_openai, github_copilot, m365_copilot
+from ingest import anthropic, azure_openai, github_copilot, m365_copilot
 from ingest.common import days
 
 SOURCES = {
     "azure_openai": azure_openai.load,
     "m365_copilot": m365_copilot.load,
     "github_copilot": github_copilot.load,
+    "anthropic": anthropic.load,
 }
 
 
