@@ -2,7 +2,7 @@
 
 Checks each department's spend for a month against its monthly AI budget
 (raw.ai_budgets, surfaced in marts.rpt_ai_spend_monthly) and posts once to
-the AI Spend Report Slack channel the first time a department passes 80%
+the AI Spend Report Slack channel the first time a department passes 90%
 of its budget for that month. State lives in reporting.budget_alerts_sent so a
 full model rebuild every night never produces a duplicate post.
 """
@@ -16,7 +16,7 @@ from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 
 PROJECT = os.environ["GCP_PROJECT"]
-THRESHOLD = 0.8
+THRESHOLD = 0.9
 STATE_TABLE = "reporting.budget_alerts_sent"
 
 
