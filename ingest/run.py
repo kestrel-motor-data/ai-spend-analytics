@@ -27,3 +27,7 @@ def main() -> None:
     for name in args.source.split(","):
         for day in days(args.start, args.end):
             SOURCES[name](day)
+
+
+if __name__ == "__main__":
+    main()
