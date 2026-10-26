@@ -1,4 +1,13 @@
-"""Azure OpenAI usage export: one CSV per day, per API key and deployment."""
+"""Azure OpenAI usage export: one CSV per day, per API key and deployment.
+
+The vendor's export moves to a v2 format starting with usage for 2027-04-09
+(DATA14D-114): a new path (`v2/` subfolder) and a renamed set of columns.
+`ensure_columns` (below) already made sure the v2 columns exist on
+`raw.azure_openai_usage` as nullable columns ahead of the cutover, so this
+only needs to pick the right landing path and the right column to key the
+per-day delete in `replace_day` on, since v2 rows don't carry `usage_date`
+at all.
+"""
 
 import datetime as dt
 
@@ -24,8 +33,17 @@ V2_COLUMNS = [
     bigquery.SchemaField("billing_currency", "STRING"),
 ]
 
+# Last day of the v1 export. v2 starts the next day; there is no overlap.
+V2_CUTOVER = dt.date(2027, 4, 9)
+
 
 def load(day: dt.date) -> None:
     ensure_columns("azure_openai_usage", V2_COLUMNS)
-    rows = read_landed_csv(f"azure_openai/usage_{day.isoformat()}.csv")
-    replace_day("azure_openai_usage", "usage_date", day, rows)
+    if day >= V2_CUTOVER:
+        path = f"azure_openai/v2/usage_{day.isoformat()}.csv"
+        date_column = "usage_date_utc"
+    else:
+        path = f"azure_openai/usage_{day.isoformat()}.csv"
+        date_column = "usage_date"
+    rows = read_landed_csv(path)
+    replace_day("azure_openai_usage", date_column, day, rows)
