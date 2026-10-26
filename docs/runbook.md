@@ -120,6 +120,19 @@ calls only. Never put a token in code, a commit, a pull request, a ticket or a c
 6. After the merge, reload only the affected days and check the totals.
 7. Say in **AI Spend Report** that the figures are current, and close the ticket.
 
+## Vendor source changes
+
+Vendors sometimes rename or restructure their export without warning (the
+Azure OpenAI cost column rename on 2027-03-23 is one example). When a vendor
+announces a bigger change ahead of time, such as Azure OpenAI's usage export
+version 2 (new file path, UTC day boundary, several renamed columns,
+starting with usage for 2027-04-09), branch `load()` on the day so each era
+reads its own file path and date column, and coalesce the renamed columns in
+the staging model the same way as a same-day rename. Keep the raw table and
+the report's columns and meaning stable across the cutover where you can
+(see `ingest/azure_openai.py` and `stg_azure_openai_usage.sql` for the
+Azure OpenAI v2 handling as a worked example).
+
 ## Who to tell
 
 | Who | Where | When |

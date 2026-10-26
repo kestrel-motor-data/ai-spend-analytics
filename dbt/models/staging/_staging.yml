@@ -5,7 +5,10 @@ models:
     description: Cleaned Azure OpenAI usage, one row per day, API key and deployment.
     columns:
       - name: usage_date
-        description: Usage day, US Central.
+        description: >-
+          Usage day. US Central through 2027-04-08; from the version 2
+          export (usage for 2027-04-09 on) this is the UTC day, so totals
+          shift slightly at the cutover.
         tests: [not_null]
       - name: api_key_id
         description: Azure OpenAI API key; owner in stg_api_keys.
