@@ -11,6 +11,8 @@ from unittest import mock
 
 from google.api_core.exceptions import Forbidden, NotFound, TooManyRequests
 
+from google.cloud import bigquery
+
 from ingest import common
 
 
@@ -72,6 +74,54 @@ class RetryingTest(unittest.TestCase):
                 common._retrying(not_found, attempts=5, base_delay=0.01)
 
         sleep.assert_not_called()
+
+
+class EnsureColumnsTest(unittest.TestCase):
+    def test_adds_missing_columns(self):
+        existing_schema = [bigquery.SchemaField("usage_date", "DATE")]
+        table = mock.Mock(schema=existing_schema)
+        client = mock.Mock()
+        client.get_table.return_value = table
+
+        new_columns = [
+            bigquery.SchemaField("usage_date_utc", "DATE"),
+            bigquery.SchemaField("key_id", "STRING"),
+        ]
+
+        with mock.patch.object(common.bigquery, "Client", return_value=client):
+            common.ensure_columns("azure_openai_usage", new_columns)
+
+        client.update_table.assert_called_once()
+        updated_table, fields = client.update_table.call_args[0]
+        self.assertEqual(fields, ["schema"])
+        self.assertEqual(
+            [f.name for f in updated_table.schema],
+            ["usage_date", "usage_date_utc", "key_id"],
+        )
+
+    def test_no_op_when_columns_already_present(self):
+        existing_schema = [
+            bigquery.SchemaField("usage_date", "DATE"),
+            bigquery.SchemaField("key_id", "STRING"),
+        ]
+        table = mock.Mock(schema=existing_schema)
+        client = mock.Mock()
+        client.get_table.return_value = table
+
+        with mock.patch.object(common.bigquery, "Client", return_value=client):
+            common.ensure_columns("azure_openai_usage", [bigquery.SchemaField("key_id", "STRING")])
+
+        client.update_table.assert_not_called()
+
+    def test_no_op_when_table_does_not_exist(self):
+        client = mock.Mock()
+        client.get_table.side_effect = NotFound("no such table")
+
+        with mock.patch.object(common.bigquery, "Client", return_value=client):
+            common.ensure_columns("azure_openai_usage", [bigquery.SchemaField("key_id", "STRING")])
+
+        client.update_table.assert_not_called()
+
 
 
 if __name__ == "__main__":

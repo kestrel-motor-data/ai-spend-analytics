@@ -91,6 +91,30 @@ def _retrying(job_fn, attempts: int = 5, base_delay: float = 2.0):
             time.sleep(delay)
 
 
+def ensure_columns(table: str, columns: list) -> None:
+    """Add columns to a raw table if they are not already there.
+
+    Lets a PR add a vendor's upcoming export columns to a raw table ahead of
+    time, as nullable, so the schema change ships through review like any
+    other code change instead of a manual ALTER TABLE. If the table does not
+    exist yet, this is a no-op: replace_day's first load creates it with
+    whatever columns that day's rows have.
+    """
+    client = bigquery.Client(project=PROJECT)
+    table_id = f"{PROJECT}.raw.{table}"
+    try:
+        table_ref = client.get_table(table_id)
+    except NotFound:
+        return
+    existing = {f.name for f in table_ref.schema}
+    missing = [c for c in columns if c.name not in existing]
+    if not missing:
+        return
+    table_ref.schema = list(table_ref.schema) + missing
+    client.update_table(table_ref, ["schema"])
+    print(f"{table}: added columns {[c.name for c in missing]}")
+
+
 def replace_day(table: str, date_column: str, day: dt.date, rows: list[dict]) -> str:
     client = bigquery.Client(project=PROJECT)
     table_id = f"{PROJECT}.raw.{table}"
