@@ -49,3 +49,17 @@ models:
         description: The department's monthly AI budget, repeated on each tool row. Do not sum.
       - name: variance
         description: Department budget minus department spend across all tools, repeated on each tool row. Do not sum.
+  - name: rpt_ai_spend_monthly_by_plant
+    description: The monthly report with each department's plant and cost centre, for Finance's site reviews.
+    columns:
+      - name: month
+        description: First day of the month.
+        tests: [not_null]
+      - name: department
+        description: Department, or 'Unallocated'.
+      - name: plant
+        description: Site of the department's cost centre.
+      - name: cost_centre
+        description: Finance cost centre.
+      - name: cost
+        description: Spend in US dollars at full precision.

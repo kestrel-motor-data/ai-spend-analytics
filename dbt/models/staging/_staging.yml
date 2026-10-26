@@ -160,3 +160,15 @@ models:
         description: Workspace name.
       - name: department
         description: Owning department. Null when the workspace has no owner yet.
+  - name: stg_departments
+    description: Finance's departments, one row per cost centre.
+    columns:
+      - name: department_id
+        description: Finance's department code.
+        tests: [not_null, unique]
+      - name: department
+        description: Department name, as HR and the report use it.
+      - name: plant
+        description: Site the cost centre sits at.
+      - name: cost_centre
+        description: Finance cost centre.
