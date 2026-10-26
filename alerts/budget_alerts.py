@@ -10,6 +10,7 @@ full model rebuild every night never produces a duplicate post.
 import argparse
 import datetime as dt
 import os
+from decimal import ROUND_HALF_UP, Decimal
 
 import requests
 from google.api_core.exceptions import NotFound
@@ -79,13 +80,17 @@ def record_alert(client, month, department, pct):
         client.get_table(table_id)
     except NotFound:
         client.create_table(bigquery.Table(table_id, schema=schema))
+    # BigQuery NUMERIC only supports 9 digits of scale; cost/budget division
+    # routinely produces far more (e.g. 0.91238693027333329), which the
+    # streaming insert rejects outright. Round before writing.
+    rounded_pct = Decimal(str(pct)).quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
     errors = client.insert_rows_json(
         table_id,
         [
             {
                 "month": month.isoformat(),
                 "department": department,
-                "pct": pct,
+                "pct": str(rounded_pct),
                 "alerted_at": dt.datetime.now(dt.timezone.utc).isoformat(),
             }
         ],
