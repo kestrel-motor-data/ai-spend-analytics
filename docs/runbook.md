@@ -78,6 +78,36 @@ under department `Unallocated`, never dropped. Say how many in the pull request.
 **Seat licences** cost their monthly price spread evenly over the days of the
 month, like Microsoft 365 Copilot.
 
+## Vendor source changes
+
+Vendors rename, split or add columns without warning (Azure renamed
+`cost_usd` to `cost` on 2027-03-23; its usage export moves to a new v2
+format with several renamed columns starting 2027-04-09, DATA14D-114).
+`replace_day` already keeps old rows as they were and adds any new column
+the vendor sends, so the raw table ends up with both the old and new
+column for the same field. Handle it in two places:
+
+- If the new field is a column on an **existing** raw table that no row has
+  sent yet (as with a format cutover with a known start date), add it ahead
+  of time as nullable via `ingest/common.py`'s `ensure_columns`, called from
+  the source's `load()` before it reads the file. This keeps the change
+  going through code review like any other, rather than a manual `ALTER
+  TABLE`, and means `ci.yml` can build against the real column once it
+  exists instead of hitting "table not found" on cutover night. This is the
+  same `ci.yml` gap as a brand-new source above, just for a new column on an
+  existing table rather than a whole table.
+- In the `stg_*` model, `coalesce()` the old and new column into the one
+  column the rest of the pipeline expects, the same way
+  `stg_azure_openai_usage` resolves `cost_usd`/`cost`/`billed_amount` into
+  one `cost_usd` field. Only merge this once the new column actually exists
+  in `raw` (see above), and before the vendor's cutover date, so there is no
+  night where a row lands with the old test's required column null.
+
+A column rename that also changes units or timezone (Azure v2's
+`usage_date_utc` is UTC, not US Central) causes a one-time, expected shift
+in daily totals right at the cutover. That's not a data error; say so in
+**AI Spend Report** ahead of the date so it isn't read as one.
+
 ## Budget alerts
 
 `marts.rpt_ai_spend_monthly` carries each department's monthly budget

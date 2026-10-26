@@ -2,23 +2,34 @@ version: 2
 
 models:
   - name: stg_azure_openai_usage
-    description: Cleaned Azure OpenAI usage, one row per day, API key and deployment.
+    description: >
+      Cleaned Azure OpenAI usage, one row per day, API key and deployment.
+      Covers both the v1 export (through usage for 2027-04-08) and the v2
+      export (from usage for 2027-04-09, DATA14D-114); v2's renamed columns
+      are coalesced into the same column names so the rest of the pipeline
+      doesn't need to know which export era a row came from.
     columns:
       - name: usage_date
-        description: Usage day, US Central.
+        description: >
+          Usage day. US Central for v1 rows; UTC for v2 rows (from
+          2027-04-09) -- a one-time, expected shift in daily totals at the
+          cutover, not a data error.
         tests: [not_null]
       - name: api_key_id
-        description: Azure OpenAI API key; owner in stg_api_keys.
+        description: Azure OpenAI API key; owner in stg_api_keys. v1 `api_key_id` or v2 `key_id` (same values).
         tests: [not_null]
       - name: deployment
-        description: Model deployment the key called.
+        description: >
+          The enterprise deployment name the key called (e.g. kmm-gpt4o-prod),
+          not the base model. v2 also carries a true `model` field (e.g.
+          gpt-4o) which isn't surfaced here yet.
         tests: [not_null]
       - name: input_tokens
-        description: Prompt tokens.
+        description: Prompt tokens. v1 `input_tokens`, or v2 `prompt_tokens + cached_prompt_tokens`.
       - name: output_tokens
-        description: Completion tokens.
+        description: Completion tokens. v1 `output_tokens` or v2 `completion_tokens` (same values).
       - name: cost_usd
-        description: Cost in US dollars as billed.
+        description: Cost in US dollars as billed. v1 `cost_usd`/`cost`, or v2 `billed_amount` (USD for all US agreements).
         tests: [not_null]
       - name: _load_id
         description: The load that wrote this row.
