@@ -2,9 +2,11 @@
 
 Checks each department's spend for a month against its monthly AI budget
 (raw.ai_budgets, surfaced in marts.rpt_ai_spend_monthly) and posts once to
-the AI Spend Report Slack channel the first time a department passes 90%
+the AI Spend Report Slack channel the first time a department passes 80%
 of its budget for that month. State lives in reporting.budget_alerts_sent so a
-full model rebuild every night never produces a duplicate post.
+full model rebuild every night never produces a duplicate post. The alert is
+recorded before it is posted: if the Slack post then fails, we lose that one
+notification rather than risk posting the same alert again on a later run.
 """
 
 import argparse
@@ -17,7 +19,7 @@ from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 
 PROJECT = os.environ["GCP_PROJECT"]
-THRESHOLD = 0.9
+THRESHOLD = 0.8
 STATE_TABLE = "reporting.budget_alerts_sent"
 
 
@@ -123,8 +125,13 @@ def main():
         if already_alerted(client, month, department):
             continue
         pct = cost / budget
-        post_slack(webhook_url, department, pct, month, cost, budget)
+        # Record before posting: if insert_rows_json raises (bad grant, a
+        # NUMERIC value it rejects, anything) we never post, so a retry of
+        # this run or tomorrow's rebuild can't send a duplicate alert for a
+        # month/department we already tried. The alternative order risks a
+        # successful post whose record never lands, which repeats forever.
         record_alert(client, month, department, pct)
+        post_slack(webhook_url, department, pct, month, cost, budget)
         print(f"alerted {department}: {pct:.1%} of budget for {month:%B %Y}")
 
 
