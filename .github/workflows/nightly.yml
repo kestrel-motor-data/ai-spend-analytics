@@ -52,6 +52,13 @@ jobs:
       - name: Build models
         working-directory: dbt
         run: dbt build --profiles-dir .
+      - name: Check budget alerts
+        if: success()
+        env:
+          SLACK_REPORT_WEBHOOK: ${{ secrets.SLACK_REPORT_WEBHOOK }}
+        run: |
+          month="${END%-*}-01"
+          python -m alerts.budget_alerts --month "$month"
       - name: Email the data engineer
         if: failure() && vars.ALERT_EMAIL != ''
         env:
