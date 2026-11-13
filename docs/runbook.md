@@ -59,18 +59,6 @@ Then check the totals for the reloaded days in `marts.fct_ai_spend_daily`.
    for `ci.yml` to pass.
 6. After the merge, load the history with `nightly.yml` and check the report tables.
 
-**Brand-new sources.** `ci.yml` only runs `dbt build` against the real `raw`
-dataset; it never runs ingest. For a source that has never loaded before,
-`raw.<source>_usage` (and any other raw table it needs) does not exist yet, so
-the staging models in step 3 cannot build and `ci.yml` will fail on "table not
-found" even though the code is correct. Split the work into two pull requests
-instead of one: PR A with just `ingest/<source>.py`, the `ingest/run.py`
-registration, and the `nightly.yml` env entry for the vendor's token; once that
-merges, trigger `nightly.yml` to load a day of history so the raw table
-exists; then open PR B with the staging models, the `fct_ai_spend_daily`
-and `tool` accepted-values changes, which can now build in CI against the
-real raw table.
-
 **Unmatched people.** Usage that can't be matched to someone in
 `raw.hr_employees` (a GitHub login, a key or a user with no HR record) is kept
 under department `Unallocated`, never dropped. Say how many in the pull request.
@@ -78,53 +66,10 @@ under department `Unallocated`, never dropped. Say how many in the pull request.
 **Seat licences** cost their monthly price spread evenly over the days of the
 month, like Microsoft 365 Copilot.
 
-## Vendor source changes
-
-Vendors rename, split or add columns without warning (Azure renamed
-`cost_usd` to `cost` on 2027-03-23; its usage export moves to a new v2
-format with several renamed columns starting 2027-04-09, DATA14D-114).
-`replace_day` already keeps old rows as they were and adds any new column
-the vendor sends, so the raw table ends up with both the old and new
-column for the same field. Handle it in two places:
-
-- If the new field is a column on an **existing** raw table that no row has
-  sent yet (as with a format cutover with a known start date), add it ahead
-  of time as nullable via `ingest/common.py`'s `ensure_columns`, called from
-  the source's `load()` before it reads the file. This keeps the change
-  going through code review like any other, rather than a manual `ALTER
-  TABLE`, and means `ci.yml` can build against the real column once it
-  exists instead of hitting "table not found" on cutover night. This is the
-  same `ci.yml` gap as a brand-new source above, just for a new column on an
-  existing table rather than a whole table.
-- In the `stg_*` model, `coalesce()` the old and new column into the one
-  column the rest of the pipeline expects, the same way
-  `stg_azure_openai_usage` resolves `cost_usd`/`cost`/`billed_amount` into
-  one `cost_usd` field. Only merge this once the new column actually exists
-  in `raw` (see above), and before the vendor's cutover date, so there is no
-  night where a row lands with the old test's required column null.
-
-A column rename that also changes units or timezone (Azure v2's
-`usage_date_utc` is UTC, not US Central) causes a one-time, expected shift
-in daily totals right at the cutover. That's not a data error; say so in
-**AI Spend Report** ahead of the date so it isn't read as one.
-
-## Budget alerts
-
-`marts.rpt_ai_spend_monthly` carries each department's monthly budget
-(from `raw.ai_budgets`) and variance alongside its spend. After the nightly
-model build, `alerts/budget_alerts.py` checks every department against the
-current month: once a department's month-to-date spend reaches 90% of its
-budget, it posts one message to **AI Spend Report** naming the department
-and the percentage. A row in `reporting.budget_alerts_sent` (month,
-department) records that the alert went out, so a department is never
-alerted twice in the same month even though the mart rebuilds in full every
-night. The webhook URL lives in the `production` environment's secrets as
-`SLACK_REPORT_WEBHOOK`.
-
 ## Credentials
 
 Vendor API tokens live in the `production` environment's secrets as
-`<SOURCE>_API_TOKEN`, for example `COPILOT_API_TOKEN`, and reach code as
+`<SOURCE>_API_TOKEN`, for example `GITHUB_COPILOT_API_TOKEN`, and reach code as
 environment variables. A token you're given to explore an API is for your own
 calls only. Never put a token in code, a commit, a pull request, a ticket or a chat.
 

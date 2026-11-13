@@ -4,6 +4,8 @@
 name: nightly
 
 on:
+  # The 02:00 US Central schedule ("0 7 * * *") is switched on once the sandbox
+  # lands files by itself at 01:30; until then `sandbox run-nightly` starts it.
   workflow_dispatch:
     inputs:
       start_date:
@@ -11,9 +13,6 @@ on:
         required: false
       end_date:
         description: Last day to load. Empty means the same as start_date.
-        required: false
-      source:
-        description: Comma-separated sources to load, e.g. anthropic. Empty means all sources.
         required: false
       skip_ingest:
         description: Only rebuild the models from what is already in raw.
@@ -32,8 +31,6 @@ jobs:
       DBT_TARGET: prod
       START_DATE: ${{ inputs.start_date }}
       END_DATE: ${{ inputs.end_date }}
-      COPILOT_API_TOKEN: ${{ secrets.COPILOT_API_TOKEN }}
-      ANTHROPIC_API_TOKEN: ${{ secrets.ANTHROPIC_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -51,22 +48,10 @@ jobs:
           echo "END=${END_DATE:-$start}" >> "$GITHUB_ENV"
       - name: Load landed files
         if: ${{ !inputs.skip_ingest }}
-        run: |
-          if [ -n "${{ inputs.source }}" ]; then
-            python -m ingest.run --start "$START" --end "$END" --source "${{ inputs.source }}"
-          else
-            python -m ingest.run --start "$START" --end "$END"
-          fi
+        run: python -m ingest.run --start "$START" --end "$END"
       - name: Build models
         working-directory: dbt
         run: dbt build --profiles-dir .
-      - name: Check budget alerts
-        if: success()
-        env:
-          SLACK_REPORT_WEBHOOK: ${{ secrets.SLACK_REPORT_WEBHOOK }}
-        run: |
-          month="${END%-*}-01"
-          python -m alerts.budget_alerts --month "$month"
       - name: Email the data engineer
         if: failure() && vars.ALERT_EMAIL != ''
         env:
